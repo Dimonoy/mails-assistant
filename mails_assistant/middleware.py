@@ -3,7 +3,7 @@ import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from ._logger import logger
+from mails_assistant.logger import logger
 
 
 class UserIDMiddleware(BaseHTTPMiddleware):

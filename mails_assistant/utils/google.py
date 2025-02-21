@@ -1,13 +1,15 @@
 import re
 import base64
+from functools import lru_cache
 from pathlib import Path
+from typing import Dict, List
 
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
-from src import DATA_PATH, GOOGLE_TOKENS_DIR, SCOPES
-from src._logger import logger
+from mails_assistant import DATA_PATH, GOOGLE_TOKENS_DIR, SCOPES
 
 
 def convert_user_id_to_google_token_file(user_id: str) -> str:
@@ -41,21 +43,31 @@ def get_google_credentials(user_id: str) -> Credentials:
     return Credentials.from_authorized_user_file(google_token_path, SCOPES)
 
 
-def get_message_content(service, user_id, msg_id):
-    message = service.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
+def get_gmail_messages(user_id: str, gmail_address: str, labels: List[str], max_results: int) -> Dict:
+    google_service = build('gmail', 'v1', credentials=get_google_credentials(user_id))
+    labels = list(map(lambda label: label.upper(), labels))
+
+    return google_service.users().messages().list(
+        userId=gmail_address, labelIds=labels, maxResults=max_results
+    ).execute()
+
+
+@lru_cache(maxsize=1024)
+def get_gmail_message_content(user_id: str, gmail_address: str, message_id: str) -> Dict:
+    google_service = build('gmail', 'v1', credentials=get_google_credentials(user_id))
+    message = google_service.users().messages().get(userId=gmail_address, id=message_id, format='full').execute()
     
     payload = message['payload']
     headers = payload['headers']
     
-    logger.debug(payload)
-    
     subject = next(header['value'] for header in headers if header['name'] == 'Subject')
     sender = next(header['value'] for header in headers if header['name'] == 'From')
+    sendee = next(header['value'] for header in headers if header['name'] == 'To')
     
     parts = payload.get('parts', [])
     body = ''
     
-    if 'body' in payload:
+    if 'data' in payload['body']:
         body = payload['body'].get('data', '')
     elif parts:
         for part in parts:
@@ -64,13 +76,22 @@ def get_message_content(service, user_id, msg_id):
                 break
     
     body = base64.urlsafe_b64decode(body).decode('utf-8')
-    soup = BeautifulSoup(body)
+    soup = BeautifulSoup(body, 'html.parser')
     
     return {
+        'message_id': message_id,
         'subject': subject,
         'sender': sender,
-        'body': re.sub('\s+', ' ', soup.get_text().replace('\n', '').replace('\t', '')).strip()
+        'sendee': sendee,
+        'body': re.sub(r'\s+', ' ', soup.get_text().replace('\n', '').replace('\t', '')).strip()
     }
+
+
+def get_gmail_labels(user_id: str, gmail_address: str) -> Dict:
+    google_service = build('gmail', 'v1', credentials=get_google_credentials(user_id))
+    labels = google_service.users().labels().list(userId=gmail_address).execute()
+
+    return labels
 
 
 def _get_google_token_path(user_id: str) -> Path:

@@ -1,6 +1,6 @@
 #/bin/sh
 
-LOCAL=true
+LOCAL=${LOCAL:-false}
 export $(grep -v '^#' .env | xargs)
 
 if [ ! -e $DATA_PATH ] && [ $LOCAL = true ]; then
@@ -16,6 +16,11 @@ if [ $LOCAL = false ]; then
 fi
 
 cp -r data/* $DATA_PATH
-mkdir $DATA_PATH/$GOOGLE_TOKENS_DIR
+mkdir -p $DATA_PATH/$GOOGLE_TOKENS_DIR
 
-fastapi dev src/main.py
+if [ ! -e "$DATA_PATH/$LLM_INSTRUCTIONS_FILE" ]; then
+    echo "Instructions file is abscent. Generating empty instructions."
+    touch "$DATA_PATH/$LLM_INSTRUCTIONS_FILE"
+fi
+
+fastapi dev mails_assistant/main.py

@@ -11,5 +11,6 @@ dependencies = [
     "google-auth-httplib2>=0.2.0",
     "google-auth-oauthlib>=1.2.1",
     "itsdangerous>=2.2.0",
+    "openai>=1.63.2",
     "python-dotenv>=1.0.1",
 ]

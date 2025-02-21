@@ -14,4 +14,7 @@ GOOGLE_CREDENTIALS_FILE=Path(os.environ['GOOGLE_CREDENTIALS_FILE'])
 GOOGLE_TOKENS_DIR=Path(os.environ['GOOGLE_TOKENS_DIR'])
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
-OPENAI_API_KEY=os.environ['OPENAI_API_KEY']
+OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
+
+with open(DATA_PATH / os.environ['LLM_INSTRUCTIONS_FILE'], 'r') as f:
+    LLM_INSTRUCTIONS = f.read().strip()
