@@ -11,6 +11,7 @@ from mails_assistant.routes.prompt import router as prompt_router
 
 app = FastAPI()
 router = APIRouter()
+
 app.add_middleware(UserIDMiddleware)
 app.add_middleware(SessionMiddleware, secret_key='secret_key')
 

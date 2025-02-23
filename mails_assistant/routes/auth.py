@@ -8,7 +8,7 @@ from mails_assistant.utils import check_google_credentials, save_google_credenti
 router = APIRouter()
 
 
-@router.post('/auth/google')
+@router.get('/auth/google')
 async def auth_google(request: Request):
     do_credentials_exist = check_google_credentials(request.session['user_id'])
     if do_credentials_exist:
@@ -25,7 +25,7 @@ async def auth_google(request: Request):
 
 
 
-@router.post('/auth/google/callback')
+@router.get('/auth/google/callback')
 async def auth_google_callback(request: Request):
     flow = Flow.from_client_secrets_file(
         str(DATA_PATH / GOOGLE_CREDENTIALS_FILE),
